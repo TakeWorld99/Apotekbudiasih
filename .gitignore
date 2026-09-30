@@ -1,0 +1,74 @@
+# =============================================================================
+# .gitignore - APOTEK BUDI ASIH
+# Proteksi data sensitif, kredensial, database dump, dan build artifacts
+# =============================================================================
+
+# 1. KREDENSIAL, KUNCI RAHASIA & ENVIRONMENT VARIABLES (SANGAT KRUSIAL)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.test
+!.env.example
+
+# 2. SERTIFIKAT & KUNCI PRIVATE (SSL/TLS / SSH)
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+
+# 3. BACKUP DATABASE, DUMP & DATA TRANSAKSI PRIVAT
+backups/
+backup_*.sql
+*.dump
+*.tar
+*.bak
+*.sqlite
+*.sqlite3
+*.db
+storage/
+tmp/
+temp/
+
+# 4. DEPENDENCIES & PACKAGE MANAGERS
+node_modules/
+.pnp
+.pnp.js
+
+# 5. PRODUCTION BUILDS & CACHE
+dist/
+dist-ssr/
+*.local
+.cache/
+.temp/
+
+# 6. LOGS & FILE DEBUG SISTEM
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 7. VERCEL & CLOUD DEPLOYMENT
+.vercel
+
+# 8. IDE & OPERATING SYSTEM TEMPORARY FILES
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini
