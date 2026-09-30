@@ -762,13 +762,34 @@ const handleSaveNewPassword = async () => {
 
     if (res.ok) {
       // Perbarui juga data di store local jika user ditemukan
+      const targetNik = (inputNik.value || '').trim();
+      const targetEmail = (inputEmail.value || '').trim().toLowerCase();
       const foundUser = pharmacyStore.usersList.find(
-        u => u.email.toLowerCase() === inputEmail.value.trim().toLowerCase() || (inputNik.value && u.nik === inputNik.value.trim())
+        u => (targetEmail && u.email && u.email.toLowerCase() === targetEmail) || (targetNik && u.nik === targetNik)
       );
       if (foundUser) {
         foundUser.password = newPassword.value.trim();
         pharmacyStore.saveUsersList();
       }
+
+      // Perbarui juga akun tersimpan di localStorage agar auto-fill tidak memakai sandi lama
+      try {
+        const saved = localStorage.getItem('apotek_saved_accounts');
+        if (saved) {
+          const list = JSON.parse(saved);
+          const sIdx = list.findIndex(a => (targetNik && a.nik === targetNik) || (targetEmail && a.email && a.email.toLowerCase() === targetEmail));
+          if (sIdx !== -1) {
+            list[sIdx].password = newPassword.value.trim();
+            localStorage.setItem('apotek_saved_accounts', JSON.stringify(list));
+          }
+        }
+      } catch (e) {}
+
+      // Siarkan pembaruan secara real time
+      pharmacyStore.broadcastChange('PASSWORD_CHANGED', {
+        nik: targetNik,
+        email: targetEmail,
+      });
 
       currentStep.value = 4;
     } else {

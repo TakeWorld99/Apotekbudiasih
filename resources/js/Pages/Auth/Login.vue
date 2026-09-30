@@ -577,7 +577,11 @@ onMounted(() => {
     isImageLoaded.value = true;
   }
 
+  pharmacyStore.initSyncListener();
   loadSavedAccounts();
+  pharmacyStore.fetchUsersFromDb().then(() => {
+    loadSavedAccounts();
+  });
   nextTick(() => {
     initTurnstile();
   });

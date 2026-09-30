@@ -1904,7 +1904,7 @@ const availableStaffList = computed(() => {
   }
   return [
     'Afin Riyandika (Owner)',
-    'Indana Farhah (Apoteker)',
+    'Apt. Sarah Maulida, S.Farm (Apoteker)',
     'Budi Santoso (Kasir)',
     'Siti Rahmawati (Asisten Apoteker)',
   ];

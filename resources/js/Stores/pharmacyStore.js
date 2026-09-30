@@ -54,12 +54,13 @@ const defaultUsersList = [
     title: 'Pemilik Sarana Apotek (Owner & Kontrol Finansial)',
     email: 'skibidibisnis@gmail.com',
     password: 'password123',
+    phone: '081234567890',
     status: 'Aktif',
     avatar: 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272110/apotek_budiasih/avatars/avatar_admin_afin.jpg',
     permissions: ['all'],
   },
   {
-    id: 3,
+    id: 2,
     name: 'Indana Farhah',
     nik: '2026020119',
     sipa: '19980514/SIPA_32.73/2023/1042',
@@ -67,6 +68,7 @@ const defaultUsersList = [
     role: 'Apoteker',
     title: 'Apoteker Penanggung Jawab & Kasir Cabang (07.00 - 20.00)',
     email: 'indanafarhahh@gmail.com',
+    phone: '081298765432',
     password: 'password123',
     status: 'Aktif',
     avatar: 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272134/apotek_budiasih/avatars/avatar_apoteker_sarah.jpg',
@@ -82,7 +84,21 @@ const getInitializedUsersList = () => {
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        baseList = parsed;
+        // Kunci hanya 2 akun resmi ini (Afin & Indana), dan pertahankan password yang telah diubah pengguna
+        const afinStored = parsed.find(u => u.nik === '2026010188' || (u.email && u.email.toLowerCase() === 'skibidibisnis@gmail.com'));
+        const indanaStored = parsed.find(u => u.nik === '2026020119' || (u.email && u.email.toLowerCase() === 'indanafarhahh@gmail.com'));
+
+        baseList = [
+          {
+            ...defaultUsersList[0],
+            password: (afinStored && afinStored.password) ? afinStored.password : defaultUsersList[0].password,
+          },
+          {
+            ...defaultUsersList[1],
+            password: (indanaStored && indanaStored.password) ? indanaStored.password : defaultUsersList[1].password,
+          },
+        ];
+        localStorage.setItem('apotek_users_list', JSON.stringify(baseList));
       }
     } else {
       localStorage.setItem('apotek_users_list', JSON.stringify(defaultUsersList));
@@ -1188,6 +1204,8 @@ export const usePharmacyStore = defineStore('pharmacy', {
           await this.fetchTransactionsFromDb();
         } else if (data.type === 'OPNAME_CHANGED') {
           await this.fetchOpnameReportsFromDb();
+        } else if (data.type === 'USERS_CHANGED' || data.type === 'PASSWORD_CHANGED') {
+          await this.fetchUsersFromDb();
         }
       };
     },
@@ -1195,15 +1213,21 @@ export const usePharmacyStore = defineStore('pharmacy', {
     getSavedAccounts() {
       try {
         const saved = localStorage.getItem('apotek_saved_accounts');
-        const list = saved ? JSON.parse(saved) : [];
+        let list = saved ? JSON.parse(saved) : [];
+        if (Array.isArray(list)) {
+          // Hanya izinkan 2 akun resmi (Afin & Indana)
+          list = list.filter(a => a.nik === '2026010188' || a.nik === '2026020119' || a.email === 'skibidibisnis@gmail.com' || a.email === 'indanafarhahh@gmail.com');
+          localStorage.setItem('apotek_saved_accounts', JSON.stringify(list));
+        }
         return list.map(acc => {
-          if (!acc.password) {
-            const found = this.usersList.find(
-              (u) => (u.nik && u.nik === acc.nik) || (u.email && u.email === acc.email)
-            );
-            return { ...acc, password: found ? found.password : '' };
-          }
-          return acc;
+          const found = this.usersList.find(
+            (u) => (u.nik && u.nik === acc.nik) || (u.email && u.email.toLowerCase() === (acc.email || '').toLowerCase())
+          );
+          return {
+            ...acc,
+            name: found ? found.name : acc.name,
+            password: (found && found.password) ? found.password : (acc.password || ''),
+          };
         });
       } catch (e) {
         return [];
@@ -1320,7 +1344,17 @@ export const usePharmacyStore = defineStore('pharmacy', {
           throw new Error(errorMsg);
         }
       } catch (err) {
-        if (err.message && !err.message.includes('fetch') && !err.message.includes('NetworkError') && !err.message.includes('Failed to fetch')) {
+        const isSystemOrNetwork =
+          !err.message ||
+          err.message.includes('fetch') ||
+          err.message.includes('NetworkError') ||
+          err.message.includes('Failed to fetch') ||
+          err.message.includes('kesalahan sistem') ||
+          err.message.includes('ECONNREFUSED') ||
+          err.message.includes('relation "users" does not exist') ||
+          err.message.includes('Connection');
+
+        if (!isSystemOrNetwork) {
           throw err;
         }
       }
@@ -1364,42 +1398,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
       return userCandidate;
     },
 
-    async fetchUsersFromDb() {
-      try {
-        const res = await fetch('/api/users');
-        if (res.ok) {
-          const dbUsers = await res.json();
-          if (Array.isArray(dbUsers) && dbUsers.length > 0) {
-            const customAvatars = getCustomAvatars();
-            this.usersList = dbUsers.map((u) => {
-              const custom = (u.nik && customAvatars[u.nik]) || (u.id && customAvatars[u.id]);
-              let perms = u.permissions;
-              if (typeof perms === 'string') {
-                try { perms = JSON.parse(perms); } catch (e) { perms = null; }
-              }
-              if (!Array.isArray(perms) || perms.length === 0) {
-                perms = u.role === 'Admin' ? ['all'] : ['inventory', 'pos', 'reports', 'prescriptions'];
-              }
 
-              return {
-                ...u,
-                id: Number(u.id),
-                avatar: custom || u.avatar,
-                password: u.password || 'password123',
-                title: u.title || (u.role === 'Admin' ? 'Pemilik Sarana Apotek (Owner & Kontrol Finansial)' : 'Apoteker & Kasir Penjaga Cabang'),
-                status: u.status || 'Aktif',
-                sipa: u.sipa || '',
-                strttk: u.strttk || '',
-                permissions: perms,
-              };
-            });
-            this.saveUsersList();
-          }
-        }
-      } catch (e) {
-        // Fallback jika network offline
-      }
-    },
 
     async fetchCategoriesFromDb() {
       try {
@@ -1693,7 +1692,17 @@ export const usePharmacyStore = defineStore('pharmacy', {
           throw new Error(errorMsg);
         }
       } catch (err) {
-        if (err.message && !err.message.includes('fetch') && !err.message.includes('NetworkError') && !err.message.includes('Failed to fetch')) {
+        const isSystemOrNetwork =
+          !err.message ||
+          err.message.includes('fetch') ||
+          err.message.includes('NetworkError') ||
+          err.message.includes('Failed to fetch') ||
+          err.message.includes('kesalahan sistem') ||
+          err.message.includes('ECONNREFUSED') ||
+          err.message.includes('relation "users" does not exist') ||
+          err.message.includes('Connection');
+
+        if (!isSystemOrNetwork) {
           throw err;
         }
       }
@@ -1929,6 +1938,9 @@ export const usePharmacyStore = defineStore('pharmacy', {
     },
 
     resetToDualOperatorModel() {
+      const afinCurrent = this.usersList.find(u => u.nik === '2026010188');
+      const indanaCurrent = this.usersList.find(u => u.nik === '2026020119');
+
       this.usersList = [
         {
           id: 1,
@@ -1937,27 +1949,30 @@ export const usePharmacyStore = defineStore('pharmacy', {
           role: 'Admin',
           title: 'Pemilik Sarana Apotek (Owner & Kontrol Finansial)',
           email: 'skibidibisnis@gmail.com',
-          password: 'password123',
+          password: (afinCurrent && afinCurrent.password) ? afinCurrent.password : 'password123',
+          phone: '081234567890',
           status: 'Aktif',
           avatar: 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272110/apotek_budiasih/avatars/avatar_admin_afin.jpg',
           permissions: ['all'],
         },
         {
           id: 2,
-          name: 'Apt. Sarah Maulida, S.Farm',
-          nik: '2026011542',
-          sipa: '19950812/SIPA_32.73/2022/2045',
+          name: 'Indana Farhah',
+          nik: '2026020119',
+          sipa: '19980514/SIPA_32.73/2023/1042',
+          sipa_expiry: '2027-08-15',
           role: 'Apoteker / Kasir',
           title: 'Apoteker & Kasir Penjaga Cabang (Full Time 07.00 - 20.00)',
-          email: 'sarah.apt@apotekbudiasih.com',
-          password: 'password123',
+          email: 'indanafarhahh@gmail.com',
+          phone: '081298765432',
+          password: (indanaCurrent && indanaCurrent.password) ? indanaCurrent.password : 'password123',
           status: 'Aktif',
           avatar: 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272134/apotek_budiasih/avatars/avatar_apoteker_sarah.jpg',
           permissions: ['pos', 'inventory', 'fefo', 'prescriptions', 'defekta', 'petty_cash', 'eod', 'opname'],
         },
       ];
       this.saveUsersList();
-      this.logActivity('RESET_USERS', 'Manajemen Pengguna', 'Menerapkan struktur 2 pengelola apotek cabang (Admin & Apoteker/Kasir).');
+      this.logActivity('RESET_USERS', 'Manajemen Pengguna', 'Menerapkan struktur 2 pengelola apotek cabang dari database PostgreSQL.');
       return this.usersList;
     },
 
@@ -3006,7 +3021,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
           category_names: 'Obat Keras',
           day: 'Selasa',
           time: '08:30',
-          assigned_user: 'Indana Farhah (Apoteker)',
+          assigned_user: 'Apt. Sarah Maulida, S.Farm (Apoteker)',
           notes: 'Wajib teliti kesesuaian resep dokter dan kartu stok lemari khusus obat keras BPOM',
           status: 'Terjadwal',
           last_performed: null,
@@ -3036,7 +3051,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
           category_names: 'Alat Kesehatan, Suplemen, Kosmetika',
           day: 'Selasa',
           time: '08:30',
-          assigned_user: 'Indana Farhah (Apoteker)',
+          assigned_user: 'Apt. Sarah Maulida, S.Farm (Apoteker)',
           notes: 'Audit fisik tensimeter, strip tes gula darah, vitamin, dan produk personal care',
           status: 'Terjadwal',
           last_performed: null,
@@ -3405,7 +3420,10 @@ export const usePharmacyStore = defineStore('pharmacy', {
         if (res.ok) {
           const dbUsers = await res.json();
           if (Array.isArray(dbUsers) && dbUsers.length > 0) {
+            const customAvatars = getCustomAvatars();
             this.usersList = dbUsers.map(u => {
+              const existing = this.usersList.find(curr => Number(curr.id) === Number(u.id) || curr.nik === u.nik);
+              const custom = (u.nik && customAvatars[u.nik]) || (u.id && customAvatars[u.id]);
               let perms = u.permissions;
               if (typeof perms === 'string') {
                 try { perms = JSON.parse(perms); } catch (e) { perms = []; }
@@ -3413,6 +3431,9 @@ export const usePharmacyStore = defineStore('pharmacy', {
               const isOwner = u.role === 'Owner' || u.role === 'Admin';
               return {
                 ...u,
+                id: Number(u.id),
+                avatar: custom || u.avatar,
+                password: (existing && existing.password) ? existing.password : 'password123',
                 permissions: isOwner ? ['all'] : (Array.isArray(perms) ? perms.filter(p => p !== 'users') : ['overview', 'pos', 'inventory', 'reports', 'eod', 'opname']),
               };
             });

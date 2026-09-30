@@ -48,6 +48,38 @@ export const dbPool = getDbPool();
 export async function initDatabaseTables() {
   try {
     await dbPool.query(`
+      -- 0. Table users (Owner & Apoteker)
+      CREATE TABLE IF NOT EXISTS users (
+        id BIGSERIAL PRIMARY KEY,
+        nik VARCHAR(50) UNIQUE NULL,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NULL,
+        email_verified_at TIMESTAMP WITH TIME ZONE NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'Apoteker',
+        phone VARCHAR(50) NULL,
+        avatar VARCHAR(500) NULL,
+        title VARCHAR(100) NULL,
+        status VARCHAR(50) NOT NULL DEFAULT 'Aktif',
+        sipa VARCHAR(100) NULL,
+        strttk VARCHAR(100) NULL,
+        sipa_expiry DATE NULL,
+        strttk_expiry DATE NULL,
+        permissions JSONB NULL,
+        remember_token VARCHAR(100) NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_users_nik ON users(nik);
+      CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+
+      -- Seed 2 pengguna resmi (Afin & Indana) jika belum ada
+      INSERT INTO users (id, nik, name, email, password, role, title, phone, avatar, status, sipa, sipa_expiry, permissions)
+      VALUES 
+      (1, '2026010188', 'Afin Riyandika', 'skibidibisnis@gmail.com', '$2b$10$FJ45HndOHJngJ1boW78LJeIrRnFXDnKKkrvlCyWxzsk0SySjh0fAa', 'Owner', 'Pemilik Sarana Apotek (Owner & Kontrol Finansial)', '081234567890', 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272110/apotek_budiasih/avatars/avatar_admin_afin.jpg', 'Aktif', NULL, NULL, '["all"]'::jsonb),
+      (2, '2026020119', 'Indana Farhah', 'indanafarhahh@gmail.com', '$2b$10$FJ45HndOHJngJ1boW78LJeIrRnFXDnKKkrvlCyWxzsk0SySjh0fAa', 'Apoteker', 'Apoteker Penanggung Jawab & Kasir Cabang (07.00 - 20.00)', '081298765432', 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272134/apotek_budiasih/avatars/avatar_apoteker_sarah.jpg', 'Aktif', '19980514/SIPA_32.73/2023/1042', '2027-08-15', '["overview","pos","inventory","reports","eod","opname"]'::jsonb)
+      ON CONFLICT (id) DO NOTHING;
+
       -- 1. Table eod_reports
       CREATE TABLE IF NOT EXISTS eod_reports (
         id BIGSERIAL PRIMARY KEY,

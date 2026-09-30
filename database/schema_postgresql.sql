@@ -304,14 +304,11 @@ EXECUTE FUNCTION generate_user_nik();
 -- 14. DATA AWAL (SEED DATA REALISTIS)
 -- =============================================================================
 
--- Seed Users: Afin (Owner) & Apt Sarah (Apoteker), password default: password123
+-- Seed Users: Afin (Owner) & Indana Farhah (Apoteker), password default: password123
 INSERT INTO users (id, nik, name, email, password, role, title, phone, avatar, status, sipa, sipa_expiry, permissions) VALUES
-(1, '2026010188', 'Afin Riyandika', 'admin@apotekbudiasih.com', '$2b$10$FJ45HndOHJngJ1boW78LJeIrRnFXDnKKkrvlCyWxzsk0SySjh0fAa', 'Owner', 'Pemilik Sarana Apotek', '081234567890', 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272110/apotek_budiasih/avatars/avatar_admin_afin.jpg', 'Aktif', NULL, NULL, '["all"]'::jsonb),
-(2, '2026011542', 'Apt. Sarah Maulida, S.Farm', 'apoteker@apotekbudiasih.com', '$2b$10$FJ45HndOHJngJ1boW78LJeIrRnFXDnKKkrvlCyWxzsk0SySjh0fAa', 'Apoteker', 'Apoteker Penanggung Jawab', '081298765432', 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272134/apotek_budiasih/avatars/avatar_apoteker_sarah.jpg', 'Aktif', '19980514/SIPA_32.73/2023/1042', '2027-08-15', '["pos","obat","resep","eod","opname"]'::jsonb)
-ON CONFLICT (id) DO UPDATE SET
-  role = EXCLUDED.role,
-  title = EXCLUDED.title,
-  permissions = EXCLUDED.permissions;
+(1, '2026010188', 'Afin Riyandika', 'skibidibisnis@gmail.com', '$2b$10$FJ45HndOHJngJ1boW78LJeIrRnFXDnKKkrvlCyWxzsk0SySjh0fAa', 'Owner', 'Pemilik Sarana Apotek (Owner & Kontrol Finansial)', '081234567890', 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272110/apotek_budiasih/avatars/avatar_admin_afin.jpg', 'Aktif', NULL, NULL, '["all"]'::jsonb),
+(2, '2026020119', 'Indana Farhah', 'indanafarhahh@gmail.com', '$2b$10$FJ45HndOHJngJ1boW78LJeIrRnFXDnKKkrvlCyWxzsk0SySjh0fAa', 'Apoteker', 'Apoteker Penanggung Jawab & Kasir Cabang (07.00 - 20.00)', '081298765432', 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272134/apotek_budiasih/avatars/avatar_apoteker_sarah.jpg', 'Aktif', '19980514/SIPA_32.73/2023/1042', '2027-08-15', '["overview","pos","inventory","reports","eod","opname"]'::jsonb)
+ON CONFLICT (id) DO NOTHING;
 
 -- Seed Categories
 INSERT INTO categories (id, name, slug, description) VALUES
