@@ -569,8 +569,16 @@ const handleNikAutoFillEmail = async () => {
   const matched = pharmacyStore.usersList.find(
     u => u.nik.toLowerCase() === query
   );
-  if (matched) {
+  if (matched && matched.email) {
     inputEmail.value = matched.email;
+    return;
+  }
+
+  // 3. Fallback langsung sesuai data resmi di DBeaver
+  if (query === '2026010188') {
+    inputEmail.value = 'skibidibisnis@gmail.com';
+  } else if (query === '2026020119') {
+    inputEmail.value = 'indanafarhahh@gmail.com';
   }
 };
 

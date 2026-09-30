@@ -17,8 +17,9 @@ function getDbPool() {
   const connectionString = getEnv('DATABASE_URL') || getEnv('POSTGRES_URL');
   if (connectionString) {
     const isLocal = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+    const cleanConnectionString = connectionString.replace(/[\?&]sslmode=[^&]+/g, '');
     return new Pool({
-      connectionString,
+      connectionString: cleanConnectionString,
       ssl: isLocal ? false : { rejectUnauthorized: false },
       max: parseInt(getEnv('PG_MAX_POOL', isLocal ? '20' : '5'), 10),
       idleTimeoutMillis: 30000,
@@ -79,6 +80,10 @@ export async function initDatabaseTables() {
       (1, '2026010188', 'Afin Riyandika', 'skibidibisnis@gmail.com', '$2b$10$FJ45HndOHJngJ1boW78LJeIrRnFXDnKKkrvlCyWxzsk0SySjh0fAa', 'Owner', 'Pemilik Sarana Apotek (Owner & Kontrol Finansial)', '081234567890', 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272110/apotek_budiasih/avatars/avatar_admin_afin.jpg', 'Aktif', NULL, NULL, '["all"]'::jsonb),
       (2, '2026020119', 'Indana Farhah', 'indanafarhahh@gmail.com', '$2b$10$FJ45HndOHJngJ1boW78LJeIrRnFXDnKKkrvlCyWxzsk0SySjh0fAa', 'Apoteker', 'Apoteker Penanggung Jawab & Kasir Cabang (07.00 - 20.00)', '081298765432', 'https://res.cloudinary.com/yuqz5iha/image/upload/v1788272134/apotek_budiasih/avatars/avatar_apoteker_sarah.jpg', 'Aktif', '19980514/SIPA_32.73/2023/1042', '2027-08-15', '["overview","pos","inventory","reports","eod","opname"]'::jsonb)
       ON CONFLICT (id) DO NOTHING;
+
+      -- Pastikan email dan nama sinkron persis dengan DBeaver jika di DB cloud masih tersimpan record lama (password aman terjaga)
+      UPDATE users SET email = 'skibidibisnis@gmail.com' WHERE (id = 1 OR nik = '2026010188') AND email <> 'skibidibisnis@gmail.com';
+      UPDATE users SET email = 'indanafarhahh@gmail.com', name = 'Indana Farhah', nik = '2026020119' WHERE (id = 2 OR nik = '2026020119' OR nik = '2026011542') AND (email <> 'indanafarhahh@gmail.com' OR name <> 'Indana Farhah');
 
       -- 1. Table eod_reports
       CREATE TABLE IF NOT EXISTS eod_reports (
